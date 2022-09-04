@@ -7,10 +7,27 @@ from usuario.models import Profile
 from django.contrib.auth.models import User, UserManager
 
 import telebot
-# Para citar un mensaje
-from telebot.types import ForceReply
+import os
+# ForceReply:Para citar un mensaje
+from telebot.types import ForceReply, ReplyKeyboardMarkup, ReplyKeyboardRemove
+#Para usar los botones Inline
+from telebot.types import InlineKeyboardButton # Para definir botones
+from telebot.types import InlineKeyboardMarkup # Para crear la botonera inline
 from bot.utils import All_Products, get_image
 
+import requests
+import pickle
+from bs4 import BeautifulSoup
+
+#===============CONSTANTES PARA EL EJEMPLO DE LOS BOTONES=====================>
+N_RES_PAG=5 # numero de resultados a mostrar en cada pagina
+MAX_ANCHO_ROW = 8 # maximo de botones por fila(limitacion de telegram)
+DIR = {"busquedas" : "./busquedas/"}# donde se guardan los archivos de las busquedas
+for key in DIR:
+    try:
+        os.mkdir(key)
+    except:
+        pass
 
 # =========================================================================================>
 
@@ -103,27 +120,166 @@ def set_image_name_user(message):
 #=================EDITAR USUARIO==============================================================>
 @bot.message_handler(commands=["edit_user"])
 def edit_user(message):
-    bot.send_message(message.chat.id, "Este comando aun no lo tengo funcional")
+    if Profile.objects.filter(chat_id = int(message.chat.id)).exists():
+        bot.send_message(message.chat.id, "Este comando aun no lo tengo funcional")
+    else:
+        bot.send_message(message.chat.id, "No puedes usar estes comando. No estas registrado. Usa /create_user para hacerlo.")
 #=============================================================================================>
-@bot.message_handler(commands=["productos"])
-def product(message):
-    bot.types
-    # if Profile.objects.get(chat_id=message.chat.id):
-    #     username = Profile.objects.get(chat_id=message.chat.id)
-    #     if Tienda.objects.filter(encargado=username).count()==0:
-    #         bot.send_chat_action(message.chat.id, "No tienes ningun negocio activo.")
-    #     else:
+@bot.message_handler(commands=["list_productos"])
+def list_productos(message):
+    if Profile.objects.filter(chat_id = int(message.chat.id)).exists():
+        perfil = Profile.objects.get(chat_id = int(message.chat.id))
+        tiendas = Tienda.objects.filter(encargado=User.objects.get(username=perfil))
+        if tiendas.count():
+            pass
+        else:
+            bot.send_message(message.chat.id, "No tienes ninguna tienda o servicio.")
+    else:
+        bot.send_message(message.chat.id, "No puedes usar este comando. No estas registrado. Usa /create_user para hacerlo.")
             
 
-@bot.message_handler(commands=["delete_product"])
-def delete_product(message):
-    productos = Producto.objects.all()
-    productos.delete()
+@bot.message_handler(commands=["delete_all_products"])
+def delete_all_products(message):
+    if Profile.objects.filter(chat_id = int(message.chat.id)).exists():
+        productos = Producto.objects.all()
+        productos.delete()
+        
+    else:
+        bot.send_message(message.chat.id, "No puedes usar estes comando. No estas registrado. Usa /create_user para hacerlo.")
 
-    content= All_Products()
-    # foto = open("2da51ecfc2163740880424721d9a0114.jpg","rb")
-    # bot.send_photo(message.chat.id, foto, "Sueña en grande Cesar.jajaja")
-    bot.send_message(message.chat.id, str(content))
+#========ESTE ES PARA PROBAR LOS BOTONES==========================================>
+@bot.message_handler(commands=["info"])
+def info(message):
+    # Para citar
+    # markup = ForceReply()
+    # bot.send_message(message.chat.id,"Como te llamas?",reply_markup=markup)
+    markup = ReplyKeyboardMarkup(one_time_keyboard=True, input_field_placeholder="Pulsa el boton",resize_keyboard=True)
+    markup.add("Hombre","Mujer")
+    msg=bot.send_message(message.chat.id, "¿Cual es tu sexo?",reply_markup=markup)
+    bot.register_next_step_handler(msg,aux)
+
+def aux(message):
+    if message.text == "Hombre" or message.text=="Mujer":
+        markup=ReplyKeyboardRemove()
+        bot.send_message(message.chat.id,"OK",reply_to_message_id=message.message_id,reply_markup=markup)
+    else:
+        pass
+#==================================================================================>
+#===============BOTONES INLINE====================================================>
+@bot.message_handler(commands=['botones'])
+def cmd_botones(message):
+    # Muestra un mensaje con botones inline(a continuacion del mensaje)
+    markup = InlineKeyboardMarkup(row_width=2) # numero de botones en cada fila(3 por defecto)
+    b1=InlineKeyboardButton("TOP Descuentazos",url="https://t.me/top_descuentazos")
+    b2=InlineKeyboardButton("TOP hgjgf",url="https://t.me/top_descuentazos")
+    b3=InlineKeyboardButton("TOP vcnvcbc",url="https://t.me/top_descuentazos")
+    b4=InlineKeyboardButton("TOP nvcbvnb",url="https://t.me/top_descuentazos")
+    b5=InlineKeyboardButton("TOP vcbnvbnvcb",url="https://t.me/top_descuentazos")
+    # Esto por atras al programa de python el mensaje "cerrar"
+    b_cerrar=InlineKeyboardButton("CERRAR",callback_data="cerrar")
+    markup.add(b1,b2,b3,b4,b5,b_cerrar)
+    bot.send_message(message.chat.id, "Mis canales de ofertas",reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda x:True)
+def respuesta_botones_inline(call):
+    # Gestiona las acciones de los botones callback_data
+    cid=call.from_user.id
+    mid=call.message.id
+    # Aqui verifico si se envio el mensaje "cerrar"
+    if call.data =="cerrar":
+        # Aqui cierro la botonera
+        bot.delete_message(cid,mid)
+        return 
+    datos = pickle.load(open(f'{DIR["busquedas"]}{cid}_{mid}','rb'))
+    if call.data =="anterior":
+        if datos["pag"]==0:
+            bot.answer_callback_query(call.id,"Ya estas en la primera pagina")
+        else:
+            datos["pag"]-=1
+            pickle.dump(datos, open(f'{DIR["busquedas"]}{cid}_{mid}','wb'))
+            mostrar_pagina(datos["lista"],cid,datos["pag"],mid)
+        return
+    elif call.data=="siguiente":
+        # Si ya estamos en la ultima pagina
+        if datos["pag"]*N_RES_PAG+N_RES_PAG >=len(datos["lista"]):
+            bot.answer_callback_query(call.id,"Ya estas en la ultima pagina")
+        else:
+            datos["pag"]+=1
+            pickle.dump(datos, open(f'{DIR["busquedas"]}{cid}_{mid}','wb'))
+            mostrar_pagina(datos["lista"],cid,datos["pag"],mid)
+        return
+
+# =========================MISMO TEMA==================================================>
+@bot.message_handler(commands=['buscar'])
+def cmd_buscar(message):
+    texto_buscar=" ".join(message.text.split()[1:])
+    if not texto_buscar:
+        texto='Debes introducir una busqueda.\n'
+        texto+='Ejemplo:\n'
+        texto+=f'<code>{message.text} zapatos puma</code>'
+        bot.send_message(message.chat.id,texto,parse_mode="html")
+        return 1
+    else:
+        print(f'Buscando en Amazon: "{texto_buscar}"')
+        url="https://www.amazon.com/s?k={0}".format(texto_buscar.replace(" ","+"))
+        headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
+                "Accept-Language":"en",
+                }
+        response=requests.get(url,headers=headers)
+        if response.status_code != 200:
+            print(f'ERROR al buscar:{response.status_code} {response.reason}')
+            bot.send_message(message.chat.id, "Se ha producido un error. Intentalo mas tarde")
+            return 1
+        else:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            elementos = soup.find_all('div', {'class':'s-result-item', 'data-component-type':'s-search-result'})
+            lista=[]
+            for elemento in elementos:
+                try:
+                    # product_name = result.h2.text
+                    product_name = elemento.find('span', {'class':'a-text-normal'}).text 
+                    product_url = elemento.find('a', {'class':'a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal'}).get('href')
+                    product_url = "https://www.amazon.com" + product_url
+                    print("No hubo problema")
+                    lista.append([product_name, product_url])
+                except:
+                    print("ERROR")
+                    continue
+        
+        mostrar_pagina(lista,message.chat.id)
+        
+
+def mostrar_pagina(lista, cid, pag=0, mid=None):
+    #Crea o edita un mensaje de la pagina
+    # Creamos botonera
+    markup=InlineKeyboardMarkup(row_width=MAX_ANCHO_ROW)
+    b_anterior  =InlineKeyboardButton("🡠",callback_data="anterior")
+    b_cerrar    =InlineKeyboardButton("🗙",callback_data="cerrar")
+    b_siguiente =InlineKeyboardButton("🡢",callback_data="siguiente")
+    inicio =pag*N_RES_PAG
+    fin=inicio+N_RES_PAG
+    if fin > len(lista):
+        fin=len(lista)
+    mensaje = f'<i>Resultados {inicio+1}-{fin} de {len(lista)}</i>\n\n'
+    n=1
+    botones =[]
+    for item in lista[inicio:fin]:
+        botones.append(InlineKeyboardButton(str(n),url=item[1]))
+        mensaje+=f'[<b>{n}</b>] {item[0]}\n'
+        n+=1
+    markup.add(*botones)    
+    markup.row(b_anterior,b_cerrar,b_siguiente)
+    if mid:
+        bot.edit_message_text(mensaje, cid, mid, reply_markup=markup, parse_mode="html",disable_web_page_preview=True)
+    else:
+        res=bot.send_message(cid,mensaje, reply_markup=markup,parse_mode="html",disable_web_page_preview=True)
+        mid=res.message_id
+        datos={"pag":0,"lista":lista}
+        pickle.dump(datos, open(f'{DIR["busquedas"]}{cid}_{mid}','wb'))
+    
+            
+#======================================================================================>    
 """
 @bot.message_handler(commands=["create_product"])
 def create_product(message):
@@ -167,7 +323,10 @@ def bot_message_texto(message):
     else:
         print(message.text)
         bot.send_message(message.chat.id, message.text)
+        
 
+
+    
 
 bot.set_my_commands([
         telebot.types.BotCommand("/start","Da la Bienvenida"),
@@ -176,6 +335,6 @@ bot.set_my_commands([
         telebot.types.BotCommand("/edit_user","Editar tu usuario."),
         telebot.types.BotCommand("/create_product","Crea un nuevo producto."),
         telebot.types.BotCommand("/delete_product","Elimina todos tus productos"),
-        telebot.types.BotCommand("/productos","Muestra todos tus productos")
+        telebot.types.BotCommand("/list_productos","Muestra todos tus productos")
     ])
 

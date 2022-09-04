@@ -15,7 +15,7 @@ class TiendaAdmin(admin.ModelAdmin):
     readonly_fields  = ("created", "updated",)
 
     def img(self,obj):
-        return format_html('<img src={} width="130" height="100" />',obj.image1.url )
+        return format_html('<img src={} width="130" height="100" />',obj.imagen1.url )
 
 
 class ProductoAdmin(admin.ModelAdmin):

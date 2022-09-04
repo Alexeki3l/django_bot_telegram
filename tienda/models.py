@@ -23,7 +23,7 @@ class Tienda(models.Model):
         ordering = ['-created']
 
     def __str__(self):
-        return self.id
+        return self.nombre
 
 class Producto(models.Model):
     nombre          = models.CharField(max_length=255)
