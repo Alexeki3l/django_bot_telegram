@@ -41,8 +41,9 @@ DEFAULTS = [
 
 MY_APPS = [
     'bot',
-    'usuario',
-    'tienda',
+    'business',
+    'user',
+    'multimedia',
 ]
 
 INSTALLED_APPS = DEFAULTS + MY_APPS
@@ -140,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Para que aloje cualquier HOST
 ALLOWED_HOSTS = ["*"]
 # Para que el csrf no de problema con la URL del sitio
-CSRF_TRUSTED_ORIGINS = ['https://c981-152-207-109-56.ngrok.io']
+CSRF_TRUSTED_ORIGINS = ['https://29f3-152-207-181-0.sa.ngrok.io']
 
 
 # Para guardar las imagenes ahi y se trabaje desde este directorio

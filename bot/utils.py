@@ -1,13 +1,14 @@
-from tienda.models import Producto
+from business.models import Product
 import requests
+import cv2
 import os
 
 def All_Products():
     content = " "
     try:
-        if Producto.objects.count():
-            for producto in Producto.objects.all():
-                content += "Nombre: "+str(producto.nombre)+"\n"+"Precio: "+str(producto.precio)+"\n"+"Descripcion: "+str(producto.descripcion)+"\n"+"########\n"
+        if Product.objects.count():
+            for producto in Product.objects.all():
+                content += "Nombre: "+str(producto.name)+"\n"+"Precio: "+str(producto.price)+"\n"+"Descripcion: "+str(producto.description)+"\n"+"########\n"
                 print(content)
         else:
             content = "Lo sentimos. Ahora mismo no tenemos nada que ofertarle."
@@ -33,17 +34,17 @@ def get_image(folder_name, url_image):
     name = name[:-4]
     print("Nombre de la imagen:",name)
     # Obtengo la ruta del projecto para guardar las imagenes
-    # ruta = os.path.dirname(__file__)
-    # ruta = ruta.split("\bot")
-    # ruta = ruta[0]
-    ruta = "D:\Alexei-Todo\Python\Estacion de Trabajo\Proyectos_Django\django_telebot"
+    ruta = os.path.dirname(__file__)
+    ruta = ruta[:-3]
+    print(ruta)
+    
     ruta = os.path.join(ruta, 'media')
-    ruta = ruta + folder_name
+    ruta_folder = ruta+ folder_name
     print(ruta)
     # Creo una carpeta en caso de no existir en dicha ruta para guardar las imagenes.
-    if not os.path.exists(ruta):
-        os.mkdir(ruta)
-        fullname = ruta + "/" + name
+    if not os.path.exists(ruta_folder):
+        os.mkdir(ruta_folder)
+        fullname = ruta_folder + "/" + name
         open(fullname +'.jpg', 'wb').write(imagen)
         print('descargando:{}.jpg'.format(name))
     else:
@@ -51,13 +52,30 @@ def get_image(folder_name, url_image):
         # if name in list_archivos:
         #     print("Ya existe este archivo")
         # else:
-            fullname = ruta + "/" + name
+        fullname = ruta_folder + "/" + name
     
-            open(fullname +'.jpg', 'wb').write(imagen)
-            print('descargando:{}.jpg'.format(name))
+        open(fullname +'.jpg', 'wb').write(imagen)
+        print('descargando:{}.jpg'.format(name))
 
-    folder_name=folder_name
+    folder_name=folder_name[1:]
+
+    # Normalizando todas las imagenes del mismo tamaño
+    src = cv2.imread(fullname +'.jpg', cv2.IMREAD_UNCHANGED)
+    #Porcentaje en el que se redimensiona la imagen
+    #scale_percent = 60
+    #calcular el 50 por ciento de las dimensiones originales
+    #width = int(src.shape[1] * scale_percent / 100)
+    #height = int(src.shape[0] * scale_percent / 100)
+    width=564
+    height=761
+    # dsize
+    dsize = (width, height)
+    # cambiar el tamaño de la image
+    output = cv2.resize(src, dsize)
+    cv2.imwrite(fullname +'.jpg',output) 
+
     # Retorno la ruta de la imagen apartir de la carpeta creada con nombre del Item para DJANGO la encuentre
+    print("Retornando: ",folder_name + "/" + "{}.jpg".format(name))
     return folder_name + "/" + "{}.jpg".format(name)
             
 
