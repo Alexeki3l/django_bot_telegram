@@ -5,6 +5,9 @@ from django.utils.html import format_html
 from user.models import Profile, TypeProfile
 from multimedia.models import Multimedia
 
+from django.contrib.auth.models import User
+from django.contrib.admin.sites import AlreadyRegistered
+
 # Register your models here.
 class ContenidoModelForm( forms.ModelForm ):
     # Que el charfield "contenido" se comporte como un textarea
@@ -21,7 +24,6 @@ class ProfileAdmin(admin.ModelAdmin):
     # def img(self,obj):
         
     #     return format_html('<img src={} width="130" height="100" />',)
-
 
 class TypeProfileAdmin(admin.ModelAdmin):
     list_display = ('name','created','updated',)

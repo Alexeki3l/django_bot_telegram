@@ -18,6 +18,7 @@ from business.models import Business, Product
 #         return self.name
 
 class Multimedia(models.Model):
+    # id          = models.AutoField(primary_key=True, unique=False, )
     name        = models.CharField(max_length=255, null=True, blank=True)
     file        = models.FileField()
     TYPE        = (('1', 'profile'), ('2', 'business'), ('3', 'product'),)
@@ -36,23 +37,54 @@ class Multimedia(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if self.type == "1":
-            self.business = None
-            self.products = None
-            self.name = self.file.url.split("/")[-1].split(".")[-2]
-            return super().save(self,*args,**kwargs)
 
-        if self.type == "2":
-            self.profiles = None
-            self.products = None
-            self.name = self.file.url.split("/")[-1].split(".")[-2]
-            return super().save(self,*args,**kwargs)
+        if not self.created:
+            print("CREATE")
+            if self.type == "1":
+                self.business = None
+                self.products = None
 
-        if self.type == "3":
-            self.business = None
-            self.profiles = None
-            self.name = self.file.url.split("/")[-1].split(".")[-2]
-            return super().save(self,*args,**kwargs)
+                self.name = self.file.url.split("/")[-1].split(".")[-2]
+                return super().save(self,*args,**kwargs)
+
+            elif self.type == "2":
+                self.profiles = None
+                self.products = None
+                
+                self.name = self.file.url.split("/")[-1].split(".")[-2]
+                return super().save(self,*args,**kwargs)
+
+            elif self.type == "3":
+                self.business = None
+                self.profiles = None
+
+                self.name = self.file.url.split("/")[-1].split(".")[-2]
+                return super().save(self,*args,**kwargs)
+        else:
+            print("UPDATED")
+            if self.type == "1":
+                self.business = None
+                self.products = None
+
+                self.name = self.file.url.split("/")[-1].split(".")[-2]
+                return super(Multimedia,self).save(force_update=True)
+
+            elif self.type == "2":
+                self.profiles = None
+                self.products = None
+                
+                self.name = self.file.url.split("/")[-1].split(".")[-2]
+                return super(Multimedia,self).save(force_update=True)
+
+            elif self.type == "3":
+                self.business = None
+                self.profiles = None
+                self.name = self.file.url.split("/")[-1].split(".")[-2]
+                return super(Multimedia,self).save(force_update=True)
+        
+
+        
+        
         
 
     

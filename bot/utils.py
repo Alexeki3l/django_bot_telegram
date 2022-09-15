@@ -3,21 +3,6 @@ import requests
 import cv2
 import os
 
-def All_Products():
-    content = " "
-    try:
-        if Product.objects.count():
-            for producto in Product.objects.all():
-                content += "Nombre: "+str(producto.name)+"\n"+"Precio: "+str(producto.price)+"\n"+"Descripcion: "+str(producto.description)+"\n"+"########\n"
-                print(content)
-        else:
-            content = "Lo sentimos. Ahora mismo no tenemos nada que ofertarle."
-
-    except:
-        print("no pincha")
-        
-    return content
-
 
 def get_image(folder_name, url_image):
 
