@@ -11,7 +11,7 @@ class ContentModelForm( forms.ModelForm ):
 
 class BusinessAdmin(admin.ModelAdmin):
     form = ContentModelForm
-    list_display = ('name','manager','description','address','open',)
+    list_display = ('name','manager','description','address','open','is_active',)
     readonly_fields  = ("created", "updated",)
 
     # def img(self,obj):
@@ -20,7 +20,7 @@ class BusinessAdmin(admin.ModelAdmin):
 
 class ProductAdmin(admin.ModelAdmin):
     form = ContentModelForm
-    list_display = ('name','price','old_price','description','business','quantity','sell',)
+    list_display = ('name','price','old_price','description','business','quantity','sell','is_active',)
     readonly_fields  = ("created", "updated",)
 
     # def img(self,obj):

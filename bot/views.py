@@ -91,8 +91,10 @@ def start(message):
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
 
-    if not Profile.objects.filter(chat_id = int(message.chat.id)).exists():
-        
+    profile = Profile.objects.get(chat_id = int(message.chat.id))
+    User.objects.filter(username=profile, is_active=True) 
+    # if not Profile.objects.filter(chat_id = int(message.chat.id)).exists():
+    if not User.objects.filter(username=profile, is_active=True).exists():  
         mensaje  = "<b>Hola, ¿Como estas?</b>\n\n"
         mensaje += "<i>Soy un Bot de Gestion. Con los comandos que tengo predefinido espero que tengas una agradable interaccion conmigo.</i>\n"
         mensaje += "\n"
@@ -224,16 +226,27 @@ def respuesta_botones_inline(call):
 
     elif call.data=="create_business":
         bot.delete_message(call.message.chat.id, call.message.id, timeout=10)
-        mensaje = "¿Que nombre tendra su negocio?.\n"
+        mensaje = "Enviame la una imagen que sera la de su nuevo negocio.\n"
+        mensaje += "Y el nombre que tendra en la descripcion de la imagen.\n"
         # mensaje += "Y en la descripcion de la imagen envieme lo que sera el nombre de su negocio."
         msg=bot.send_message(call.message.chat.id, mensaje)
         bot.register_next_step_handler(msg,create_business)
-    
-    for name in business_name_list:
-        if call.data==f"{name}": 
-            details_business(call.message, name)
+
+    for name in business_name_list: 
+        if call.data==str(name): 
             bot.delete_message(cid,mid)
+            details_business(call.message, name)
             return
+        else:
+            continue
+
+    entrada=str(call.data).split("edit_business_")
+    print(entrada)
+    if entrada[1].isdigit():
+        edit_business(call.message, entrada[1])
+        bot.delete_message(cid,mid)
+        return
+
 
 #===========================================================================================>
 #=================================CONTACTO==============================================>
@@ -246,16 +259,21 @@ def contacto(message):
 # @bot.message_handler(commands=["crear_usuario"])
 def crear_usuario(message):
     bot.send_chat_action(message.chat.id, "typing")
-    if Profile.objects.filter(chat_id = int(message.chat.id)).exists():
+    profile = Profile.objects.get(chat_id = int(message.chat.id))
+    if User.objects.filter(username=profile, is_active=True).exists():
         usuario = Profile.objects.get(chat_id = int(message.chat.id))
+        
         bot.send_message(message.chat.id,f"<b>{usuario}</b>. Ya usted está registrado.", parse_mode="html")
+        bot.delete_message(message.chat.id, message.id)
+        cmd_start(message)
     else:
-        mensaje = "Este comando sirve para registrarte en nuestro sistema.\n"
+        mensaje = "Esta opcion sirve para registrarte en nuestro sistema.\n"
         mensaje += "¿Quieres registrarte en nuestra Base de Datos?\n\n"
         mensaje += "<i>Espero respuesta de <b>SI</b> o <b>NO</b></i>"
         markup = ReplyKeyboardMarkup(one_time_keyboard=True, input_field_placeholder="Pulsa el boton",resize_keyboard=True)
         markup.add("Si","No")
         msg = bot.send_message(message.chat.id, mensaje, parse_mode="html", reply_markup=markup)
+        bot.delete_message(message.chat.id, message.id)
         bot.register_next_step_handler(msg, aux_create_user)
 
 def aux_create_user(message):
@@ -265,6 +283,7 @@ def aux_create_user(message):
         mensaje = "<b>OK</b>\n"
         mensaje += "En caso que quieras. No podras registrar ningun servicio"
         bot.send_message(message.chat.id, mensaje, reply_markup=markup, parse_mode="html")
+        cmd_start(message)
 
     elif message.text =="Si" or message.text == "SI" or message.text == "si":
         bot.send_chat_action(message.chat.id, "typing")
@@ -400,7 +419,7 @@ def set_image_name_user(message):
 
 def profile(message):
     username = Profile.objects.get(chat_id = int(message.chat.id))
-    usuario = User.objects.get(username = username)
+    usuario = User.objects.get(username = username, is_active=True)
     if Multimedia.objects.filter(profiles = username).exists():
         multimedia = Multimedia.objects.get(profiles = username)
         mensaje = "❎⚜️⚜️⚜️❎<b>PERFIL</b>❎⚜️⚜️⚜️❎\n\n"
@@ -437,7 +456,7 @@ def profile(message):
 
 def edit_user(message):
     username = Profile.objects.get(chat_id = int(message.chat.id))
-    usuario = User.objects.get(username = username)
+    usuario = User.objects.get(username = username, is_active = True)
     multimedia = Multimedia.objects.get(profiles = username)
     multimedia = "../django_telebot/"+str(multimedia.file.url)[1:]
     markup=InlineKeyboardMarkup(row_width=1)
@@ -477,14 +496,14 @@ def edit_user(message):
 def edit_profile_name(message):
     
     username = Profile.objects.get(chat_id = int(message.chat.id))
-    User.objects.filter(username = username).update(first_name = str(message.text))
+    User.objects.filter(username = username, is_active = True).update(first_name = str(message.text))
     bot.send_message(message.chat.id, "Nombre guardado satisfactoriamente")
     edit_user(message)
 
 def edit_profile_last_name(message):
     
     username = Profile.objects.get(chat_id = int(message.chat.id))
-    User.objects.filter(username = username).update(last_name = str(message.text))
+    User.objects.filter(username = username, is_active = True).update(last_name = str(message.text))
     bot.send_message(message.chat.id, "Apellidos guardados satisfactoriamente")
     edit_user(message)
 
@@ -492,7 +511,7 @@ def edit_profile_email(message):
     mensaje = message.text.split("@")
     if len(mensaje)==2:
         username = Profile.objects.get(chat_id = int(message.chat.id))
-        User.objects.filter(username = username).update(email = str(message.text))
+        User.objects.filter(username = username, is_active = True).update(email = str(message.text))
         bot.send_message(message.chat.id, "Correo guardado satisfactoriamente")
         edit_user(message)
     else:
@@ -534,7 +553,8 @@ def delete_profile(message):
     if message.text == "Si" or message.text == "SI" or message.text == "si":
         markup= ReplyKeyboardRemove()
         profile= Profile.objects.get(chat_id=message.chat.id)
-        User.objects.filter(username=profile).delete()
+        # User.objects.filter(username=profile).update(is_active= False)
+        off_active(profile)
         bot.send_message(message.chat.id, "❌ Perfil Eliminido ❌ ", reply_markup=markup)
         sleep(1)
         cmd_start(message)
@@ -565,7 +585,7 @@ def menu_business(message):
     else:  
         n=1
         buttons=[]
-        for business in Business.objects.filter(manager=username):
+        for business in Business.objects.filter(manager=username, is_active=True):
             buttons.append(InlineKeyboardButton(str(n),callback_data=f"{business.name}"))
             business_name_list.append(business.name)
             mensaje +=f'[<b>{n}</b>] {business.name}\n'
@@ -588,44 +608,41 @@ def menu_business(message):
 #================================METHODS FOR CREATE BUSINESS========================================>
 def create_business(message):
     
-    if Business.objects.filter(name=message.text).count()<5:
-        if Business.objects.filter(name=message.text):
-            mensaje = "Este nombre ya esta siendo usado.\n"
-            mensaje += "La diferencia empieza con un simple nombre.\n"
-            mensaje += "Envie otro nombre."
-            msg= bot.send_message(message.chat.id, mensaje)
-            bot.register_next_step_handler(msg, create_business)
+    try:
+        url_image = bot.get_file_url(message.photo[-1].file_id)
+        image = get_image("/business",url_image)
+        caption = message.caption
+        profile = Profile.objects.get(chat_id=message.chat.id)
 
-        else:
-            try:
-                mensaje ="Negocio creado satisfactoriamente"
-                business = Business(
-                    name = str(message.text),
-                    manager = Profile.objects.get(chat_id = message.chat.id)
+        business = Business(
+            name = caption,
+            manager = profile
                 )
-                business.save()
-                msg = bot.send_message(message.chat.id, mensaje)
-                menu_business(message)
-                
-            except:
-                mensaje ="Error!!!"
-                bot.send_message(message.chat.id, mensaje)
-    else:
-        mensaje = "La cantidad exacta de <b>Negocios</b> por usuario es de 5.\n"
-        mensaje = "Escribale a soporte para mas informacion."
-        bot.send_message(message.chat.id, mensaje, parse_mode="html")
+        business.save()
 
+        multimedia = Multimedia(business=business, file=image, type="2")
+        multimedia.save()
+        bot.send_chat_action(message.chat.id, "typing")
+        bot.send_message(message.chat.id,"Perfecto!!!")
+        menu_business(message)
+    except:
+        bot.send_chat_action(message.chat.id, "typing")
+        bot.send_message(message.chat.id,"🚫 Ocurrio un error 🚫.\n")
+        menu_business(message)
+
+            
 #===================================================================================================>
 #================================INTERFACE DETAILS BUSINESS========================================>
 
 def details_business(message, name):
     
-    profile = Profile.objects.get(chat_id = int(message.chat.id))
-    business = Business.objects.get(name = name, manager = profile)
+    business = Business.objects.get(name = name, is_active=True)
+    
     mensaje = f"❎⚜️⚜️❎<b>DETALLE NEGOCIO</b>❎⚜️⚜️❎\n\n"
-    if Multimedia.objects.filter(business = business).exists():
-        multimedia = Multimedia.objects.get(business = business)
+    if Multimedia.objects.filter(business = business):
         
+        multimedia = Multimedia.objects.get(business = business)
+        print("entra aqui")
         if business.name:
             mensaje += f"✅ <b>Nombre</b>- - --: {business.name}\n"
         if business.description:
@@ -635,55 +652,70 @@ def details_business(message, name):
         if not business.open:
             mensaje += "✅ <b>Negocio</b>- - --: Cerrado\n"   
         if business.address:
-            mensaje += "✅ <b>Direccion</b>- - --: {business.address}\n"
+            mensaje += f"✅ <b>Direccion</b>- - --: {business.address}\n"
         
         multimedia = "../django_telebot/"+str(multimedia.file.url)[1:]
         markup = InlineKeyboardMarkup(row_width=2) # numero de botones en cada fila(3 por defecto)
         b_anterior = InlineKeyboardButton("⬅️ Anterior", callback_data="edit_profile")
         b_siguiente = InlineKeyboardButton("➡️ Siguiente", callback_data="edit_profile")
-        b_edit=InlineKeyboardButton("🖋️ Editar", callback_data="edit_profile")
+        b_edit=InlineKeyboardButton("🖋️ Editar", callback_data=f"edit_business_{business.id}")
         b_add_producto=InlineKeyboardButton("➕ Producto", callback_data="create_business")
         b_help=InlineKeyboardButton("🆘 Ayuda", callback_data="help_services")
         b_delete=InlineKeyboardButton("🗑️ Eliminar",callback_data="delete_profile")
         inicio = InlineKeyboardButton("⏮️ Atras",callback_data="my_services")
         b_cerrar=InlineKeyboardButton("❌ Cerrar", callback_data="close_return_start")
         markup.add(b_anterior,b_siguiente)
-        markup.row(b_add_producto)
-        markup.row(b_edit,b_delete)
-        markup.row(b_help)
+        markup.row(b_add_producto, b_edit)
+        markup.row(b_delete,b_help)
         markup.row(inicio)
         markup.row(b_cerrar)
         bot.send_chat_action(message.chat.id, "upload_photo")
         foto = open(multimedia,"rb")
         bot.send_photo(message.chat.id, foto, mensaje, reply_markup=markup, parse_mode="html")
-
+    
     else:
-        multimedia = Multimedia(
-            file="business/sin-photo.jpg",
-            type ="2",
-            business=business
-        )
-        multimedia.save()
-        
-        if business.name:
-            mensaje += f"✅ <b>Nombre</b>- - --: {business.name}\n"
-        
-        multimedia = "../django_telebot/"+str(multimedia.file.url)[1:]
-        markup = InlineKeyboardMarkup(row_width=2) # numero de botones en cada fila(3 por defecto)
-        b_edit=InlineKeyboardButton("🖋️ Editar", callback_data="edit_profile")
-        b_add_producto=InlineKeyboardButton("➕ Producto", callback_data="create_business")
-        b_help=InlineKeyboardButton("🆘 Ayuda", callback_data="help_services")
-        b_delete=InlineKeyboardButton("🗑️ Eliminar",callback_data="delete_profile")
-        inicio = InlineKeyboardButton("⏮️ Atras",callback_data="my_services")
-        b_cerrar=InlineKeyboardButton("❌ Cerrar", callback_data="close_return_start")
-        markup.add(b_add_producto,b_edit)
-        markup.row(b_help,b_delete)
-        markup.row(inicio)
-        markup.row(b_cerrar)
-        bot.send_chat_action(message.chat.id, "upload_photo")
-        foto = open(multimedia,"rb")
-        bot.send_photo(message.chat.id, foto, mensaje, reply_markup=markup, parse_mode="html")
+       mensaje= "🚫 Upss...Pasa algo con este negocio.🚫\nComuniquese con soporte." 
+       bot.send_message(message.chat.id, mensaje, parse_mode="html")
 
+#===================================================================================================>
+#================================INTERFACE EDIT BUSINESS========================================>
+
+def edit_business(message, id):
+
+    business = Business.objects.get(id=id)
+    multimedia = Multimedia.objects.get(business = business)
+    
+    markup=InlineKeyboardMarkup(row_width=3)
+    mensaje = f"❎⚜️⚜️❎<b>EDITAR NEGOCIO</b>❎⚜️⚜️❎\n\n"
+    mensaje += f"1️⃣☑️ <b>Nombre</b>- - - - --: {business.name}\n"
+    mensaje += f"2️⃣☑️ <b>Descripcion</b>- --: {business.description}\n"
+    mensaje += f"3️⃣☑️ <b>Direccion</b>- - - --: {business.address}\n"
+    mensaje += f"4️⃣☑️ <b>Estado</b>- - - - - --: {business.open}\n"
+    mensaje += f"5️⃣☑️ <b>Editar Imagen</b>\n"
+
+    b1=InlineKeyboardButton("1",callback_data=f"edit_business_name-{id}")
+    b2=InlineKeyboardButton("2",callback_data=f"edit_business_description-{id}")
+    b3=InlineKeyboardButton("3",callback_data=f"edit_business_address-{id}")
+    b4=InlineKeyboardButton("4",callback_data=f"edit_business_open-{id}")
+    b5=InlineKeyboardButton("5",callback_data=f"edit_business_edit_image-{id}_{multimedia.id}")
+
+    multimedia = "../django_telebot/"+str(multimedia.file.url)[1:]
+    markup = InlineKeyboardMarkup(row_width=2) # numero de botones en cada fila(3 por defecto)
+    b_anterior = InlineKeyboardButton("⬅️ Anterior", callback_data="edit_profile")
+    b_siguiente = InlineKeyboardButton("➡️ Siguiente", callback_data="edit_profile")
+    b_add_image=InlineKeyboardButton("➕ Imagen", callback_data="create_business")
+    b_help=InlineKeyboardButton("🆘 Ayuda", callback_data="help_services")
+    atras = InlineKeyboardButton("⏮️ Atras",callback_data="my_services")
+    b_cerrar=InlineKeyboardButton("❌ Cerrar", callback_data="close_return_start")
+
+    markup.row(b_anterior,b_add_image,b_siguiente)
+    markup.row(b1,b2,b3,b4,b5)
+    markup.row(b_help)
+    markup.row(atras)
+    markup.row(b_cerrar)
+    bot.send_chat_action(message.chat.id, "upload_photo")
+    foto = open(multimedia,"rb")
+    bot.send_photo(message.chat.id, foto, mensaje, reply_markup=markup, parse_mode="html")
 
 #==================================================================================>
 #===============BOTONES INLINE====================================================>
@@ -865,20 +897,15 @@ def bot_message_texto(message):
         bot.send_message(message.chat.id, "No tengo registrado ese comando. Fijese bien en el listado")
         
     else:
-        # print("======MESSAGE======")
-        # print(message)
-        # print("======CHAT======")
-        # print(bot.get_chat(message.chat.id))
-        # # print(message.contact)
-        # bot.send_message(message.chat.id, "Lo sentimos servidor reiniciado. Intente su operacion desde el principio")
-        # cmd_start(message)
+        print("======MESSAGE======")
+        print(message)
+        print("======CHAT======")
+        print(bot.get_chat(message.chat.id))
+        # print(message.contact)
+        bot.send_message(message.chat.id, "Lo sentimos servidor reiniciado. Intente su operacion desde el principio")
+        cmd_start(message)
         
-        try:
-            bot.send_chat_action(message.chat.id, "upload_video")
-            archivo = open("C:/Users/Keidy/Downloads/Video/SnapInsta_283629594_999756950678405_4996667443990156121_n.mp4" , "rb")
-            bot.send_video(message.chat.id, archivo, caption="mira esto")
-        except:
-            print("error")
+        
 
 @bot.message_handler(content_types=['photo'])
 def bot_message_texto(message):
@@ -889,6 +916,19 @@ def bot_message_texto(message):
         print(bot.get_chat(message.chat.id))
     else:
         pass
+
+def off_active(username):
+    if User.objects.filter(username = username).exists():
+        User.objects.filter(username = username).update(is_active=False)
+        profile = Profile.objects.get(user=username)
+        try:
+            Business.objects.filter(manager= profile).update(is_active=False)
+            Product.objects.filter(business=Business.objects.get(manager= profile)).update(is_active=False)
+        except:
+            print("Todas las tablas relacionadas con este usuario estan desactivadas")
+
+    else:
+        print("Usuario no registrado")
 
 #===========================================================================================>
 #=================================SOBRE EL BOT==============================================>

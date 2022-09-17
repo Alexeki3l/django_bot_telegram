@@ -17,6 +17,7 @@ class Business(models.Model):
     manager     = models.ForeignKey(Profile, on_delete=models.CASCADE)
     types       = models.ManyToManyField(BusinessType, blank=True, related_name='categorias_tienda')
     open        = models.BooleanField(default=True)
+    is_active   = models.BooleanField(default=True)
     # likes       = models.ManyToManyField(User, null=True, blank=True, related_name='tienda_likes' )
     created     = models.DateTimeField(auto_now_add=True)
     updated     = models.DateTimeField(auto_now=True)
@@ -29,6 +30,7 @@ class Business(models.Model):
     def __str__(self):
         return self.name
 
+
 class Product(models.Model):
     name            = models.CharField(max_length=255)
     price           = models.FloatField()
@@ -37,6 +39,7 @@ class Product(models.Model):
     business        = models.ForeignKey(Business, null=True, blank=True, on_delete=models.CASCADE)
     quantity        = models.IntegerField()
     sell            = models.BooleanField(default= True)
+    is_active       = models.BooleanField(default=True)
     # categorias      = models.ManyToManyField(CategoriaProducto, related_name='categorias_p')
     # likes           = models.ManyToManyField(User, null=True, blank=True, related_name='producto_likes' )
     created         = models.DateTimeField(auto_now_add=True)

@@ -45,19 +45,19 @@ def get_image(folder_name, url_image):
     folder_name=folder_name[1:]
 
     # Normalizando todas las imagenes del mismo tamaño
-    src = cv2.imread(fullname +'.jpg', cv2.IMREAD_UNCHANGED)
-    #Porcentaje en el que se redimensiona la imagen
-    #scale_percent = 60
-    #calcular el 50 por ciento de las dimensiones originales
-    #width = int(src.shape[1] * scale_percent / 100)
-    #height = int(src.shape[0] * scale_percent / 100)
-    width=564
-    height=761
-    # dsize
-    dsize = (width, height)
-    # cambiar el tamaño de la image
-    output = cv2.resize(src, dsize)
-    cv2.imwrite(fullname +'.jpg',output) 
+    # src = cv2.imread(fullname +'.jpg', cv2.IMREAD_UNCHANGED)
+    # #Porcentaje en el que se redimensiona la imagen
+    # #scale_percent = 60
+    # #calcular el 50 por ciento de las dimensiones originales
+    # #width = int(src.shape[1] * scale_percent / 100)
+    # #height = int(src.shape[0] * scale_percent / 100)
+    # width=564
+    # height=761
+    # # dsize
+    # dsize = (width, height)
+    # # cambiar el tamaño de la image
+    # output = cv2.resize(src, dsize)
+    # cv2.imwrite(fullname +'.jpg',output) 
 
     # Retorno la ruta de la imagen apartir de la carpeta creada con nombre del Item para DJANGO la encuentre
     print("Retornando: ",folder_name + "/" + "{}.jpg".format(name))

@@ -15,7 +15,7 @@ class MultimediaAdmin(admin.ModelAdmin):
     
     # form = ContenidoModelForm
     ordering    =   ('-updated',)
-    list_display = ('img','name','username','business_name','product_name','type')
+    list_display = ('img','name','username','business_name','product_name','type',)
     search_fields = ['name',]
     list_filter = ['created','type',]
     # filter_horizontal = ('habilidades',)
