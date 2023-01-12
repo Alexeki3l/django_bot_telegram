@@ -141,9 +141,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Para que aloje cualquier HOST
 ALLOWED_HOSTS = ["*"]
 # Para que el csrf no de problema con la URL del sitio
-CSRF_TRUSTED_ORIGINS = ['https://6b3f-152-207-145-87.sa.ngrok.io']
+CSRF_TRUSTED_ORIGINS = ['https://6043-152-206-233-19.ngrok.io']
 
 
 # Para guardar las imagenes ahi y se trabaje desde este directorio
 MEDIA_URL='/media/'
 MEDIA_ROOT=os.path.join(BASE_DIR ,'media')
+
